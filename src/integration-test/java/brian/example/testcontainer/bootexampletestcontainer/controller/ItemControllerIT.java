@@ -70,14 +70,14 @@ public class ItemControllerIT {
         {
             "items": [
                     {
-                        "id": 2,
+                        "id": 1,
                             "name": "Galaxy",
                             "description": "Samsung's smartphone",
                             "price": 799.99
                     }
             ]
         }
-         */
+        */
         mockMvc.perform(MockMvcRequestBuilders
                         .get("/items")
                         .accept(MediaType.APPLICATION_JSON))
