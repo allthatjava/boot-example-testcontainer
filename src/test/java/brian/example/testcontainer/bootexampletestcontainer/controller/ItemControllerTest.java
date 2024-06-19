@@ -5,15 +5,21 @@ import brian.example.testcontainer.bootexampletestcontainer.entity.Item;
 import brian.example.testcontainer.bootexampletestcontainer.service.ItemService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.runner.RunWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -22,21 +28,25 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@ExtendWith(SpringExtension.class)
 public class ItemControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private ItemController controller;
 
     @MockBean
     private ItemService service;
+
+    @BeforeEach
+    public void setup(){
+        controller = new ItemController(service);
+    }
 
     @Test
     public void postItemTest() throws Exception {
@@ -47,12 +57,8 @@ public class ItemControllerTest {
 
         when(service.save(item)).thenReturn(new Item(1,"Galaxy", "Samsung's smartphone", new BigDecimal("799.99")));
 
-        mockMvc.perform(post("/items")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content( new ObjectMapper().writeValueAsString(item) )
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").exists());
+        Item returnedItem = controller.postItem(item);
+        assertEquals(returnedItem.getId(), 1);
     }
 
     @Test
@@ -65,10 +71,9 @@ public class ItemControllerTest {
 
         when(service.getAllItem()).thenReturn(expected);
 
-        mockMvc.perform(get("/items")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[0].id").exists());
+        ResponseEntity<ItemResponse> returnedItems = controller.getAll();
+
+        assertEquals( 2, returnedItems.getBody().getItems().size());
     }
 
     @Test
@@ -78,8 +83,7 @@ public class ItemControllerTest {
 
         when(service.getAllItem()).thenReturn(expected);
 
-        mockMvc.perform(get("/items")
-                        .accept(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
+        ResponseEntity<ItemResponse> result = controller.getAll();
+        assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
     }
 }
